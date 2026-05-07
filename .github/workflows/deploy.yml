@@ -1,0 +1,88 @@
+name: Deploy Medicine
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # ── 后端构建 ──
+      - name: Build backend
+        working-directory: ./backend
+        run: |
+          pnpm install
+          pnpm add dayjs
+          pnpm build
+
+      # ── 前端构建 ──
+      - name: Build frontend
+        working-directory: ./frontend
+        env:
+          HUSKY: "0"
+        run: |
+          pnpm install --ignore-scripts
+          pnpm build
+
+      # ── 打包产物 ──
+      - name: Package artifacts
+        run: |
+          # 后端：.next + node_modules + package.json
+          tar -czf backend-dist.tar.gz -C backend .next node_modules package.json
+          # 前端：dist + nginx.conf
+          tar -czf frontend-dist.tar.gz -C frontend dist nginx.conf
+
+      # ── 传输到服务器并重启 ──
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 146.56.250.72
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # 清理旧产物
+            rm -rf /data/medicine/backend/.next /data/medicine/backend/node_modules
+            rm -rf /data/medicine/frontend/dist
+
+      - name: Upload artifacts
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 146.56.250.72
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "backend-dist.tar.gz,frontend-dist.tar.gz"
+          target: "/tmp/"
+
+      - name: Extract and restart
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 146.56.250.72
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # 解压后端
+            cd /data/medicine/backend
+            tar -xzf /tmp/backend-dist.tar.gz
+
+            # 解压前端
+            mkdir -p /data/medicine/frontend
+            cd /data/medicine/frontend
+            tar -xzf /tmp/frontend-dist.tar.gz
+
+            # 清理临时文件
+            rm -f /tmp/backend-dist.tar.gz /tmp/frontend-dist.tar.gz
+
+            # 重启服务
+            cd /data/medicine
+            docker compose up -d --force-recreate
+
+            echo "Deploy done!"

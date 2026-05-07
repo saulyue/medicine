@@ -23,8 +23,10 @@ import { StaffModule } from './staff/staff.module';
 @Module({
   imports: [
     TypeOrmModule.forRoot({
-      type: 'better-sqlite3',
-      database: 'database.sqlite',
+      type: 'sqljs',
+      database: new Uint8Array(),
+      location: 'database.sqlite',
+      autoSave: true,
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
       logging: ["error"]

@@ -1,20 +1,30 @@
 services:
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: nginx:alpine
     container_name: medicine-frontend
     ports:
       - "8080:80"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./frontend/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - backend
+    mem_limit: 64m
     restart: unless-stopped
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: node:20-alpine
     container_name: medicine-backend
+    working_dir: /app
     ports:
       - "3001:3001"
+    volumes:
+      - ./backend/.next:/app/.next:ro
+      - ./backend/node_modules:/app/node_modules:ro
+      - ./backend/package.json:/app/package.json:ro
+      - ./backend/database.sqlite:/app/database.sqlite
+    command: npm start
+    environment:
+      - NODE_ENV=production
+    mem_limit: 384m
     restart: unless-stopped

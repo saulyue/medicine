@@ -1,18 +1,17 @@
-# 阶段1：安装依赖并构建
-FROM node:20-alpine AS builder
+FROM node:20.15.0
+# 定位到容器工作目录
 WORKDIR /app
-RUN npm install -g pnpm
-COPY package.json ./
-RUN pnpm install
-COPY . .
-RUN pnpm build
 
-# 阶段2：运行
-FROM node:20-alpine
-WORKDIR /app
-ENV NODE_ENV=production
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./
+# 更改 NPM 下载源为淘宝源，并设置为全局持久化
+RUN npm config set -g registry https://registry.npm.taobao.org
+# 将当前目录中的package.json和package-lock.json复制到容器中
+COPY package*.json ./
+
+# 安装依赖项
+RUN npm install
+# 将当前目录中的所有文件复制到容器中
+COPY . .
+
 EXPOSE 3001
-CMD ["node", ".next/production-server/main.js"]
+
+CMD ["npm", "start"]
