@@ -29,28 +29,21 @@ jobs:
           pnpm install --no-frozen-lockfile --ignore-scripts
           pnpm build
 
-      - name: Package
-        run: tar -czf frontend-dist.tar.gz -C frontend dist nginx.conf
+      # ── 上传 dist 到 COS ──
+      - name: Install coscmd
+        run: pip install coscmd
 
-      - name: Upload & Deploy
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: 146.56.250.72
-          username: root
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "frontend-dist.tar.gz"
-          target: "/tmp/"
-
-      - name: Restart
-        uses: appleboy/ssh-action@v1
-        with:
-          host: 146.56.250.72
-          username: root
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            rm -rf /data/medicine/frontend/dist
-            mkdir -p /data/medicine/frontend
-            cd /data/medicine/frontend && tar -xzf /tmp/frontend-dist.tar.gz
-            rm -f /tmp/frontend-dist.tar.gz
-            cd /data/medicine && docker compose restart frontend
-            echo "Frontend deployed!"
+      - name: Upload to COS
+        env:
+          COS_SECRET_ID: ${{ secrets.COS_SECRET_ID }}
+          COS_SECRET_KEY: ${{ secrets.COS_SECRET_KEY }}
+        run: |
+          coscmd config \
+            -a "$COS_SECRET_ID" \
+            -s "$COS_SECRET_KEY" \
+            -b yue-1252705137 \
+            -r ap-nanjing
+          # 清空旧文件，上传新文件
+          coscmd delete -rf med/ 2>/dev/null || true
+          coscmd upload -rs frontend/dist/ med/
+          echo "COS upload done!"
