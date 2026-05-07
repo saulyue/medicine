@@ -1,0 +1,54 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'backend/**'
+  workflow_dispatch:
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build
+        working-directory: ./backend
+        run: |
+          pnpm install --no-frozen-lockfile
+          pnpm add dayjs
+          pnpm build
+
+      - name: Package
+        run: tar -czf backend-dist.tar.gz -C backend .next node_modules package.json
+
+      - name: Upload & Deploy
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 146.56.250.72
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "backend-dist.tar.gz"
+          target: "/tmp/"
+
+      - name: Restart
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 146.56.250.72
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            rm -rf /data/medicine/backend/.next /data/medicine/backend/node_modules
+            mkdir -p /data/medicine/backend
+            cd /data/medicine/backend && tar -xzf /tmp/backend-dist.tar.gz
+            rm -f /tmp/backend-dist.tar.gz
+            cd /data/medicine && docker compose restart backend
+            echo "Backend deployed!"

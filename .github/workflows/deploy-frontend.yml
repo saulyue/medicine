@@ -1,0 +1,57 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'frontend/**'
+  workflow_dispatch:
+
+jobs:
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build
+        working-directory: ./frontend
+        env:
+          HUSKY: "0"
+          CI: "false"
+        run: |
+          pnpm install --no-frozen-lockfile --ignore-scripts
+          pnpm add @ant-design/pro-form dayjs
+          pnpm build
+
+      - name: Package
+        run: tar -czf frontend-dist.tar.gz -C frontend dist nginx.conf
+
+      - name: Upload & Deploy
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 146.56.250.72
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "frontend-dist.tar.gz"
+          target: "/tmp/"
+
+      - name: Restart
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 146.56.250.72
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            rm -rf /data/medicine/frontend/dist
+            mkdir -p /data/medicine/frontend
+            cd /data/medicine/frontend && tar -xzf /tmp/frontend-dist.tar.gz
+            rm -f /tmp/frontend-dist.tar.gz
+            cd /data/medicine && docker compose restart frontend
+            echo "Frontend deployed!"
