@@ -27,7 +27,6 @@ jobs:
           CI: "false"
         run: |
           pnpm install --no-frozen-lockfile --ignore-scripts
-          pnpm add @ant-design/pro-form dayjs
           pnpm build
 
       - name: Package

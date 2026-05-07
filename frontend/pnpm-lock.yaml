@@ -14,6 +14,9 @@ importers:
       '@ant-design/pro-components':
         specifier: ^2.6.48
         version: 2.8.10(antd@5.29.3(date-fns@2.30.0)(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(rc-field-form@2.7.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@ant-design/pro-form':
+        specifier: ^2.32.0
+        version: 2.32.0(antd@5.29.3(date-fns@2.30.0)(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(rc-field-form@2.7.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@umijs/route-utils':
         specifier: ^2.2.2
         version: 2.2.2
@@ -26,6 +29,9 @@ importers:
       classnames:
         specifier: ^2.5.1
         version: 2.5.1
+      dayjs:
+        specifier: ^1.11.20
+        version: 1.11.20
       lodash:
         specifier: ^4.17.21
         version: 4.18.1
@@ -14528,7 +14534,7 @@ snapshots:
       '@types/history': 4.7.11
       '@types/react': 18.3.28
       '@types/react-router': 5.1.20
-      redux: 3.7.2
+      redux: 4.2.1
 
   '@types/react-router@5.1.20':
     dependencies:
