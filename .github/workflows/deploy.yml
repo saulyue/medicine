@@ -3,6 +3,7 @@ name: Deploy Medicine
 on:
   push:
     branches: [master]
+  workflow_dispatch:  # 支持手动触发
 
 jobs:
   build-and-deploy:
@@ -12,15 +13,18 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
+        with:
+          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: pnpm
 
       # ── 后端构建 ──
       - name: Build backend
         working-directory: ./backend
         run: |
-          pnpm install
+          pnpm install --no-frozen-lockfile
           pnpm add dayjs
           pnpm build
 
@@ -29,30 +33,30 @@ jobs:
         working-directory: ./frontend
         env:
           HUSKY: "0"
+          CI: "false"
         run: |
-          pnpm install --ignore-scripts
+          pnpm install --no-frozen-lockfile --ignore-scripts
           pnpm build
 
       # ── 打包产物 ──
       - name: Package artifacts
         run: |
-          # 后端：.next + node_modules + package.json
           tar -czf backend-dist.tar.gz -C backend .next node_modules package.json
-          # 前端：dist + nginx.conf
           tar -czf frontend-dist.tar.gz -C frontend dist nginx.conf
 
-      # ── 传输到服务器并重启 ──
-      - name: Deploy to server
+      # ── 清理服务器旧产物 ──
+      - name: Clean old artifacts
         uses: appleboy/ssh-action@v1
         with:
           host: 146.56.250.72
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # 清理旧产物
             rm -rf /data/medicine/backend/.next /data/medicine/backend/node_modules
             rm -rf /data/medicine/frontend/dist
+            mkdir -p /data/medicine/backend /data/medicine/frontend
 
+      # ── 上传产物 ──
       - name: Upload artifacts
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -62,6 +66,7 @@ jobs:
           source: "backend-dist.tar.gz,frontend-dist.tar.gz"
           target: "/tmp/"
 
+      # ── 解压并重启 ──
       - name: Extract and restart
         uses: appleboy/ssh-action@v1
         with:
@@ -69,20 +74,8 @@ jobs:
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # 解压后端
-            cd /data/medicine/backend
-            tar -xzf /tmp/backend-dist.tar.gz
-
-            # 解压前端
-            mkdir -p /data/medicine/frontend
-            cd /data/medicine/frontend
-            tar -xzf /tmp/frontend-dist.tar.gz
-
-            # 清理临时文件
+            cd /data/medicine/backend && tar -xzf /tmp/backend-dist.tar.gz
+            cd /data/medicine/frontend && tar -xzf /tmp/frontend-dist.tar.gz
             rm -f /tmp/backend-dist.tar.gz /tmp/frontend-dist.tar.gz
-
-            # 重启服务
-            cd /data/medicine
-            docker compose up -d --force-recreate
-
+            cd /data/medicine && docker compose up -d --force-recreate
             echo "Deploy done!"
