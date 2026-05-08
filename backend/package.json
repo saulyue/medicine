@@ -25,7 +25,7 @@
     "react-dom": "18.0.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.5.5",
-    "sql.js": "^1.11.0",
+    "mysql2": "^3.11.0",
     "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.20"
   },

@@ -49,5 +49,7 @@ jobs:
             mkdir -p /data/medicine/backend
             cd /data/medicine/backend && tar -xzf /tmp/backend-dist.tar.gz
             rm -f /tmp/backend-dist.tar.gz
-            cd /data/medicine && docker compose restart backend
+            cd /data/medicine
+            echo "DB_PASS=${{ secrets.DB_PASS }}" > .env
+            docker compose up -d --force-recreate
             echo "Backend deployed!"

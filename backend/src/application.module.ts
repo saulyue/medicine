@@ -23,10 +23,12 @@ import { StaffModule } from './staff/staff.module';
 @Module({
   imports: [
     TypeOrmModule.forRoot({
-      type: 'sqljs',
-      database: new Uint8Array(),
-      location: 'database.sqlite',
-      autoSave: true,
+      type: 'mysql',
+      host: process.env.DB_HOST || 'sh-cynosdbmysql-grp-hkebiel2.sql.tencentcdb.com',
+      port: parseInt(process.env.DB_PORT || '21397'),
+      username: process.env.DB_USER || 'root',
+      password: process.env.DB_PASS || '',
+      database: process.env.DB_NAME || 'medicine',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
       logging: ["error"]
